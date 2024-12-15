@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"sync/atomic"
 	"time"
 )
 
@@ -38,11 +37,17 @@ func mLogging(logger *log.Logger, next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+func mCors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
+}
 
-func NewServer(logger *log.Logger) http.Handler {
+func NewServer(logger *log.Logger, repo *Repository) http.Handler {
 	mux := http.NewServeMux()
 
-	addRoutes(mux)
+	addRoutes(mux, logger, repo)
 
 	var handler http.Handler = mux
 
@@ -51,20 +56,7 @@ func NewServer(logger *log.Logger) http.Handler {
 	}
 	handler = mLogging(logger, handler)
 	handler = mTracing(nextRequestID, handler)
+	handler = mCors(handler)
 
 	return handler
-}
-
-var healthy int32
-
-func handleHealthz(w http.ResponseWriter, r *http.Request) {
-	if atomic.LoadInt32(&healthy) == 1 {
-		w.WriteHeader(http.StatusNoContent)
-		return
-	}
-	w.WriteHeader(http.StatusServiceUnavailable)
-}
-
-func addRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/healthz", handleHealthz)
 }
