@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -25,14 +24,14 @@ func mTracing(nextReqId func() string, next http.Handler) http.Handler {
 	})
 }
 
-func mLogging(logger *log.Logger, next http.Handler) http.Handler {
+func mLogging(logger *logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			reqId, ok := r.Context().Value(REQUEST_ID_KEY).(string)
 			if !ok {
 				reqId = "unknown"
 			}
-			logger.Println(reqId, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+			logger.Info(reqId, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
 		}()
 		next.ServeHTTP(w, r)
 	})
@@ -44,7 +43,7 @@ func mCors(next http.Handler) http.Handler {
 	})
 }
 
-func NewServer(logger *log.Logger, repo *Repository) http.Handler {
+func NewServer(logger *logger, repo *Repository) http.Handler {
 	mux := http.NewServeMux()
 
 	addRoutes(mux, logger, repo)

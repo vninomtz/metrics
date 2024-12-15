@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 )
 
-func addRoutes(mux *http.ServeMux, logger *log.Logger, repo *Repository) {
+func addRoutes(mux *http.ServeMux, logger *logger, repo *Repository) {
 	mux.Handle("/api/views", handleViews(logger, repo))
 	mux.HandleFunc("/healthz", handleHealthz)
 }
@@ -15,7 +14,7 @@ func addRoutes(mux *http.ServeMux, logger *log.Logger, repo *Repository) {
 func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
-func handleViews(logger *log.Logger, repo *Repository) http.Handler {
+func handleViews(logger *logger, repo *Repository) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Method not supported", http.StatusMethodNotAllowed)
@@ -24,7 +23,7 @@ func handleViews(logger *log.Logger, repo *Repository) http.Handler {
 
 		var data View
 		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-			logger.Printf("views: Error decoding body  %v\n", err)
+			logger.Error("views: Error decoding body  %v\n", err)
 			http.Error(w, "Error to process metrics", http.StatusBadRequest)
 			return
 		}
@@ -32,7 +31,7 @@ func handleViews(logger *log.Logger, repo *Repository) http.Handler {
 		data.Created = time.Now()
 		err := repo.SaveView(data)
 		if err != nil {
-			logger.Printf("Error:  %v\n", err)
+			logger.Error("Error:  %v\n", err)
 			http.Error(w, "Error to process metrics", http.StatusBadRequest)
 			return
 		}
