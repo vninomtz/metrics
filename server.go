@@ -8,19 +8,20 @@ import (
 )
 
 func main() {
-	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
-
 	cfg := NewConfig()
 	err := cfg.Load()
 	if err != nil {
-		logger.Fatalln(err)
+		log.Fatalf("Error to load config: %v", err)
+		os.Exit(1)
 	}
+	_logger := NewLogger(*cfg)
 
 	repo, err := NewRepository(cfg.PathDB)
 	if err != nil {
-		logger.Fatal(err)
+		_logger.Error("Error to load DB: %v", err)
+		os.Exit(1)
 	}
-	hdlServer := NewServer(logger, repo)
+	hdlServer := NewServer(_logger, repo)
 
 	srv := &http.Server{
 		Addr:         cfg.Addr(),
@@ -30,8 +31,8 @@ func main() {
 		IdleTimeout:  15 * time.Second,
 	}
 
-	logger.Printf("Server is running at %s\n", cfg.Addr())
+	_logger.Info("Server is running at %s\n", cfg.Addr())
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		logger.Fatalf("Could not start the server: %v\n", err)
+		_logger.Error("Could not start the server: %v\n", err)
 	}
 }
